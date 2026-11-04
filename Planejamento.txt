@@ -1,0 +1,10 @@
+Botar a primeira página após login do usuário como um menu de seleção principal para saber se o usuário quer montar um menu para Ágapes simples, Ágapes de iniciação ou Jantar ritualístico, ai sim após entrar em um ele irá para o monte seu cardápio e poderá fazer as escolhas (No painel administrativo deve aparecer em qual menu ele fez as escolhas)
+Permitir o administrador adicionar, editar e excluir Entradas, Pratos principais e demais itens por meio de uma lista de gerenciamento no painel administrativo
+Permitir o administrador excluir pedidos no painel administrativo
+Botar sistema de status para os pedidos no painel administrativo
+Permitir o administrador ver os usuários registrados no site e dados deles (de contato e etc, adicionar isso no cadastro)
+Permitir o usuário editar os dados da conta após o cadastro
+Adicionar check de restrição alimentar e quais itens o usuario nao pode comer, permitir ao administrador já deixar pré-definido quais itens ficam indisponíveis para seleção conforme itens selecionados em restrição alimentar
+Permitir o administrador limitar quantidade de itens a serem selecionados por categoria pelos usuários
+Aparecer um modal antes de confirmar cada item, exibindo os ingredientes e quantidades
+Campo para observações para o usuário
