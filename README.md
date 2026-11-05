@@ -87,6 +87,6 @@ Para a integração HTTP, configure um banco **vazio**, local e exclusivo, com n
 python tests/http_integration.py
 ```
 
-Homologação da auditoria: PHP 8.3.32 e MariaDB 11.4.13 portátil, em localhost e porta 33317, passaram nas 71 verificações de instalação, autenticação, CRUD, persistência, permissões, CSRF, SQL injection e escaping XSS. MySQL 8 não foi executado nesta validação. Consulte `docs/recovery/02-final-audit.md`.
+Homologação da auditoria: PHP 8.3.32 e MariaDB 11.4.13 portátil, em localhost e porta 33317, passaram nas 71 verificações de instalação, autenticação, CRUD, persistência, permissões, CSRF, SQL injection e escaping XSS. MySQL 8 e migração de bancos legados não foram validados; não há migração automática para bancos legados. Consulte `docs/recovery/02-final-audit.md`.
 
 O campo de restrições alimentares é informativo nesta versão; ele não decide automaticamente a segurança de um prato. Confirme ingredientes diretamente com o estabelecimento. O endereço de imagem aceita URL HTTPS ou caminhos locais em `/uploads/`; upload de arquivos não está implementado.

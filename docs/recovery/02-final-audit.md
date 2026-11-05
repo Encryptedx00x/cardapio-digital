@@ -33,3 +33,7 @@ Também: porta configurável via `DB_PORT`, scripts CLI rejeitam HTTP e token CS
 ## Decisão
 
 **GO para merge do MVP**, com a ressalva de que a homologação executada foi MariaDB, não MySQL 8. Os campos informativos de restrições alimentares, ausência de upload e ausência de migração automática de bancos legados continuam documentados. O PR permanece draft para decisão do proprietário.
+
+## Checkpoint de preparação para revisão
+
+O README explicita que a migração de bancos legados não foi validada e que não há migração automática. A homologação permanece restrita ao MariaDB isolado já documentado.
