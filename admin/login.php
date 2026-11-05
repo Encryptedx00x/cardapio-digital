@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/../includes/security.php'; ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -10,6 +11,7 @@
     <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h1 class="text-2xl font-bold mb-6 text-center">Painel Administrativo</h1>
         <form method="POST" action="login_proc.php" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= escape_html(csrf_token()) ?>">
             <input type="email" name="email" placeholder="E-mail" required class="w-full px-3 py-2 border rounded">
             <input type="password" name="senha" placeholder="Senha" required class="w-full px-3 py-2 border rounded">
             <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Entrar</button>
@@ -19,4 +21,4 @@
         </div>
     </div>
 </body>
-</html> 
+</html>
