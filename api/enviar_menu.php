@@ -8,6 +8,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit('Método não permitido.');
 }
 require_valid_csrf();
+if ((isset($_POST['tipo']) && !is_string($_POST['tipo'])) ||
+    (isset($_POST['observacoes']) && (!is_string($_POST['observacoes']) || mb_strlen($_POST['observacoes']) > 2000))) {
+    http_response_code(400);
+    exit('Parâmetros inválidos.');
+}
 $types = ['agape_simples', 'agape_iniciacao', 'jantar_ritualistico'];
 $type = (string)($_POST['tipo'] ?? '');
 $ids = $_POST['itens'] ?? [];
@@ -15,14 +20,15 @@ if (!in_array($type, $types, true) || !is_array($ids) || count($ids) > 100 || co
     http_response_code(400);
     exit('Escolha um tipo de menu e ao menos um item.');
 }
-$ids = array_values(array_unique(array_filter(array_map(
+$validatedIds = array_map(
     static fn($id) => filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]),
     $ids
-))));
-if (!$ids) {
+);
+if (in_array(false, $validatedIds, true)) {
     http_response_code(400);
     exit('Seleção inválida.');
 }
+$ids = array_values(array_unique($validatedIds));
 $marks = implode(',', array_fill(0, count($ids), '?'));
 $query = $pdo->prepare(
     "SELECT p.id, p.name, p.price, c.id category_id, c.name category_name, c.max_selection

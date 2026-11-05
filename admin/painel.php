@@ -6,11 +6,21 @@ require_admin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_valid_csrf();
+    foreach ($_POST as $value) {
+        if (!is_string($value)) {
+            http_response_code(400);
+            exit('Parâmetros inválidos.');
+        }
+    }
     $action = (string)($_POST['action'] ?? '');
+    try {
     if ($action === 'create_category') {
         $name = trim((string)($_POST['name'] ?? ''));
         $max = filter_var($_POST['max_selection'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 100]]);
-        if ($name === '' || strlen($name) > 100 || $max === false) exit('Dados de categoria inválidos.');
+        if ($name === '' || strlen($name) > 100 || $max === false) {
+            http_response_code(400);
+            exit('Dados de categoria inválidos.');
+        }
         $stmt = $pdo->prepare('INSERT INTO categories (name, max_selection) VALUES (?, ?)');
         $stmt->execute([$name, $max]);
     } elseif ($action === 'delete_category') {
@@ -25,7 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'update_category') {
         $name = trim((string)($_POST['name'] ?? ''));
         $max = filter_var($_POST['max_selection'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 100]]);
-        if ($name === '' || strlen($name) > 100 || $max === false) exit('Dados de categoria inválidos.');
+        if ($name === '' || strlen($name) > 100 || $max === false) {
+            http_response_code(400);
+            exit('Dados de categoria inválidos.');
+        }
         $stmt = $pdo->prepare('UPDATE categories SET name=?,max_selection=? WHERE id=?');
         $stmt->execute([$name,$max,(int)($_POST['id'] ?? 0)]);
     } elseif ($action === 'create_product' || $action === 'update_product') {
@@ -39,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $validImage = $image === '' || str_starts_with($image, '/uploads/') ||
             (filter_var($image, FILTER_VALIDATE_URL) && parse_url($image, PHP_URL_SCHEME) === 'https');
         if (!$category || $name === '' || strlen($name) > 150 || $price === false || $price < 0 || $price > 99999999.99 || !$validImage) {
+            http_response_code(400);
             exit('Dados de produto inválidos. Use apenas imagem HTTPS ou caminho em /uploads/.');
         }
         $categoryCheck = $pdo->prepare('SELECT id FROM categories WHERE id=?');
@@ -63,12 +77,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'order_status') {
         $statuses = ['new','reviewed','accepted','rejected','completed'];
         $status = (string)($_POST['status'] ?? '');
-        if (!in_array($status, $statuses, true)) exit('Status inválido.');
+        if (!in_array($status, $statuses, true)) {
+            http_response_code(400);
+            exit('Status inválido.');
+        }
         $stmt = $pdo->prepare('UPDATE orders SET status=? WHERE id=?');
         $stmt->execute([$status,(int)($_POST['id'] ?? 0)]);
     } elseif ($action === 'delete_order') {
         $stmt = $pdo->prepare('DELETE FROM orders WHERE id=?');
         $stmt->execute([(int)($_POST['id'] ?? 0)]);
+    } else {
+        http_response_code(400);
+        exit('Ação inválida.');
+    }
+    } catch (PDOException $error) {
+        if ((string)$error->getCode() === '23000') {
+            http_response_code(409);
+            exit('Os dados estão em conflito com um registro existente.');
+        }
+        error_log('Administrative database operation failed: ' . $error->getCode());
+        http_response_code(500);
+        exit('Não foi possível concluir a operação.');
     }
     header('Location: painel.php');
     exit;

@@ -17,6 +17,7 @@ PowerShell:
 
 ```powershell
 $env:DB_HOST = '127.0.0.1'
+$env:DB_PORT = '3306' # opcional; use a porta da instância local isolada
 $env:DB_NAME = 'cardapio_dev'
 $env:DB_USER = 'cardapio_dev'
 $env:DB_PASS = 'uma-senha-local-forte'
@@ -80,6 +81,12 @@ Rode o smoke test local sem conexão ao banco:
 php tests/security_smoke.php
 ```
 
-Os testes de integração de schema, seed, autenticação e CRUD devem ser executados contra uma instância MySQL/MariaDB de teste dedicada. Neste checkpoint, não havia MySQL/MariaDB nem Docker disponíveis no ambiente; portanto, essas operações não foram executadas e precisam ser homologadas com banco isolado.
+Para a integração HTTP, configure um banco **vazio**, local e exclusivo, com nome começando por `cardapio_test_`, e as mesmas variáveis `DB_*`. O teste exige modo SQL estrito e `ONLY_FULL_GROUP_BY` na instância isolada. Ele instala schema/seed, cria dados sintéticos e inicia/encerra seu próprio servidor PHP em porta aleatória. Não apaga um banco existente e recusa bancos não vazios.
+
+```bash
+python tests/http_integration.py
+```
+
+Homologação da auditoria: PHP 8.3.32 e MariaDB 11.4.13 portátil, em localhost e porta 33317, passaram nas 71 verificações de instalação, autenticação, CRUD, persistência, permissões, CSRF, SQL injection e escaping XSS. MySQL 8 não foi executado nesta validação. Consulte `docs/recovery/02-final-audit.md`.
 
 O campo de restrições alimentares é informativo nesta versão; ele não decide automaticamente a segurança de um prato. Confirme ingredientes diretamente com o estabelecimento. O endereço de imagem aceita URL HTTPS ou caminhos locais em `/uploads/`; upload de arquivos não está implementado.

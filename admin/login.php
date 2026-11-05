@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/../includes/security.php'; ?>
+<?php require_once __DIR__ . '/../includes/security.php'; start_app_session(); ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>

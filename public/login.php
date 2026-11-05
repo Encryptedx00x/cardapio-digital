@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/../includes/security.php'; ?>
+<?php require_once __DIR__ . '/../includes/security.php'; start_app_session(); ?>
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar | Cardápio</title><link rel="stylesheet" href="style.css"></head><body>
 <main class="container narrow"><a href="index.php">← Cardápio público</a><h1>Entrar na sua conta</h1>
 <?php if (isset($_GET['registered'])): ?><p class="notice">Cadastro concluído. Entre para continuar.</p><?php endif; ?>

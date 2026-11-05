@@ -25,8 +25,8 @@ function csrf_token(): string
 
 function require_valid_csrf(): void
 {
-    $provided = (string)($_POST['csrf_token'] ?? '');
-    if ($provided === '' || !hash_equals(csrf_token(), $provided)) {
+    $provided = $_POST['csrf_token'] ?? '';
+    if (!is_string($provided) || $provided === '' || !hash_equals(csrf_token(), $provided)) {
         http_response_code(403);
         exit('Solicitação inválida. Atualize a página e tente novamente.');
     }
@@ -36,7 +36,7 @@ function require_customer(): void
 {
     start_app_session();
     if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'customer') {
-        $base = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+        $base = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
         header('Location: ' . $base . '/public/login.php');
         exit;
     }
@@ -46,7 +46,7 @@ function require_admin(): void
 {
     start_app_session();
     if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-        $base = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+        $base = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
         header('Location: ' . $base . '/admin/login.php');
         exit;
     }
