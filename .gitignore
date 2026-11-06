@@ -1,4 +1,6 @@
 db.local.php
 .env
 *.sql
+!database/schema.sql
+!database/seed.sql
 vendor/

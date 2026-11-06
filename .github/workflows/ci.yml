@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Check PHP syntax
+        run: find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Run security smoke test
+        run: php tests/security_smoke.php

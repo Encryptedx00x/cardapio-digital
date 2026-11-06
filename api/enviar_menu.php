@@ -1,27 +1,72 @@
 <?php
-require_once '../db.php';
-session_start();
-if (!isset($_SESSION['usuario_id'])) {
-    http_response_code(401);
-    echo 'Não autorizado.';
-    exit;
+declare(strict_types=1);
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/security.php';
+require_customer();
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit('Método não permitido.');
 }
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usuario_id = $_SESSION['usuario_id'];
+require_valid_csrf();
+if ((isset($_POST['tipo']) && !is_string($_POST['tipo'])) ||
+    (isset($_POST['observacoes']) && (!is_string($_POST['observacoes']) || mb_strlen($_POST['observacoes']) > 2000))) {
+    http_response_code(400);
+    exit('Parâmetros inválidos.');
+}
+$types = ['agape_simples', 'agape_iniciacao', 'jantar_ritualistico'];
+$type = (string)($_POST['tipo'] ?? '');
+$ids = $_POST['itens'] ?? [];
+if (!in_array($type, $types, true) || !is_array($ids) || count($ids) > 100 || count($ids) === 0) {
+    http_response_code(400);
+    exit('Escolha um tipo de menu e ao menos um item.');
+}
+$validatedIds = array_map(
+    static fn($id) => filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]),
+    $ids
+);
+if (in_array(false, $validatedIds, true)) {
+    http_response_code(400);
+    exit('Seleção inválida.');
+}
+$ids = array_values(array_unique($validatedIds));
+$marks = implode(',', array_fill(0, count($ids), '?'));
+$query = $pdo->prepare(
+    "SELECT p.id, p.name, p.price, c.id category_id, c.name category_name, c.max_selection
+     FROM products p JOIN categories c ON c.id=p.category_id
+     WHERE p.available=1 AND p.id IN ($marks)"
+);
+$query->execute($ids);
+$products = $query->fetchAll();
+if (count($products) !== count($ids)) {
+    http_response_code(400);
+    exit('Um ou mais itens foram removidos ou estão indisponíveis. Atualize a página.');
+}
+$counts = [];
+foreach ($products as $product) $counts[$product['category_id']] = ($counts[$product['category_id']] ?? 0) + 1;
+foreach ($products as $product) {
+    $max = (int)$product['max_selection'];
+    if ($max && $counts[$product['category_id']] > $max) {
+        http_response_code(400);
+        exit('A seleção ultrapassa o limite de uma categoria.');
+    }
+}
+
+try {
     $pdo->beginTransaction();
-    $stmt = $pdo->prepare('INSERT INTO menus (usuario_id, data_envio) VALUES (?, NOW())');
-    $stmt->execute([$usuario_id]);
-    $menu_id = $pdo->lastInsertId();
-    $itens = $_POST['itens'] ?? [];
-    foreach ($itens as $cat_itens) {
-        foreach ($cat_itens as $item_id) {
-            $stmt = $pdo->prepare('INSERT INTO menu_itens (menu_id, item_id) VALUES (?, ?)');
-            $stmt->execute([$menu_id, $item_id]);
-        }
+    $order = $pdo->prepare('INSERT INTO orders (user_id, menu_type, observations) VALUES (?, ?, ?)');
+    $order->execute([(int)$_SESSION['user_id'], $type, trim((string)($_POST['observacoes'] ?? ''))]);
+    $orderId = (int)$pdo->lastInsertId();
+    $item = $pdo->prepare(
+        'INSERT INTO order_items (order_id, product_id, product_name, category_name, price_at_order)
+         VALUES (?, ?, ?, ?, ?)'
+    );
+    foreach ($products as $product) {
+        $item->execute([$orderId, $product['id'], $product['name'], $product['category_name'], $product['price']]);
     }
     $pdo->commit();
-    echo 'Menu enviado com sucesso!';
-} else {
-    http_response_code(405);
-    echo 'Método não permitido.';
-} 
+} catch (Throwable $error) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    throw $error;
+}
+?>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Menu enviado</title><link rel="stylesheet" href="../public/style.css"></head><body><main class="container narrow"><h1>Menu enviado</h1><p>Seu menu #<?= $orderId ?> foi recebido para análise.</p><a class="button-link" href="../public/painel.php">Voltar</a></main></body></html>

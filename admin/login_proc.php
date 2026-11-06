@@ -1,26 +1,25 @@
 <?php
-require_once '../db.php';
-session_start();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    // Apenas emails terminando com @admin.com são administradores
-    if (!str_ends_with($email, '@admin.com')) {
-        echo 'Acesso restrito a administradores.';
-        exit;
-    }
-    $stmt = $pdo->prepare('SELECT id, nome, senha_hash FROM usuarios WHERE email = ?');
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-    if ($user && password_verify($senha, $user['senha_hash'])) {
-        $_SESSION['admin_id'] = $user['id'];
-        $_SESSION['admin_nome'] = $user['nome'];
-        header('Location: painel.php');
-        exit;
-    } else {
-        echo 'E-mail ou senha inválidos.';
-    }
-} else {
+declare(strict_types=1);
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/security.php';
+start_app_session();
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo 'Método não permitido.';
-} 
+    exit('Método não permitido.');
+}
+require_valid_csrf();
+$email = filter_var(trim((string)($_POST['email'] ?? '')), FILTER_VALIDATE_EMAIL);
+$password = (string)($_POST['senha'] ?? '');
+$stmt = $pdo->prepare("SELECT id, name, password_hash FROM users WHERE email=? AND role='admin'");
+$stmt->execute([$email ?: '']);
+$admin = $stmt->fetch();
+if (!$admin || !password_verify($password, $admin['password_hash'])) {
+    http_response_code(401);
+    exit('E-mail ou senha inválidos.');
+}
+session_regenerate_id(true);
+$_SESSION['user_id'] = (int)$admin['id'];
+$_SESSION['user_name'] = $admin['name'];
+$_SESSION['role'] = 'admin';
+header('Location: painel.php');
+exit;

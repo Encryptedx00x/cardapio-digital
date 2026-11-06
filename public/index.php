@@ -1,31 +1,24 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Cardápio Interativo</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-6 text-center">Cardápio Interativo</h1>
-        <form id="loginForm" method="POST" action="../api/login.php" class="space-y-4">
-            <input type="email" name="email" placeholder="E-mail" required class="w-full px-3 py-2 border rounded">
-            <input type="password" name="senha" placeholder="Senha" required class="w-full px-3 py-2 border rounded">
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Entrar</button>
-        </form>
-        <div class="text-center mt-4">
-            <button onclick="document.getElementById('cadastro').classList.toggle('hidden')" class="text-blue-600 hover:underline">Criar conta</button>
-        </div>
-        <form id="cadastro" method="POST" action="../api/cadastro.php" class="space-y-4 mt-4 hidden">
-            <input type="text" name="nome" placeholder="Nome" required class="w-full px-3 py-2 border rounded">
-            <input type="email" name="email" placeholder="E-mail" required class="w-full px-3 py-2 border rounded">
-            <input type="password" name="senha" placeholder="Senha" required class="w-full px-3 py-2 border rounded">
-            <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Cadastrar</button>
-        </form>
-        <div class="text-center mt-4">
-            <a href="../admin/login.php" class="text-sm text-gray-500 hover:underline">Acesso administrativo</a>
-        </div>
-    </div>
-</body>
-</html> 
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/security.php';
+$categories = $pdo->query(
+    'SELECT c.id, c.name, p.id product_id, p.name product_name, p.description, p.ingredients, p.price, p.image_url
+     FROM categories c LEFT JOIN products p ON p.category_id = c.id AND p.available = 1
+     ORDER BY c.sort_order, c.name, p.name'
+)->fetchAll();
+$grouped = [];
+foreach ($categories as $row) {
+    $grouped[$row['name']][] = $row;
+}
+start_app_session();
+?>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cardápio Digital</title><link rel="stylesheet" href="style.css"></head><body>
+<header class="hero"><nav><a class="brand" href="index.php">Cardápio Digital</a><div><a href="login.php">Entrar</a><a class="button-link" href="register.php">Criar conta</a></div></nav><div class="hero-copy"><p class="eyebrow">Feito para compartilhar</p><h1>Nosso cardápio</h1><p>Conheça as opções disponíveis e monte seu menu.</p><a class="button-link" href="<?= !empty($_SESSION['user_id']) ? 'painel.php' : 'login.php' ?>">Montar um menu</a></div></header>
+<main class="container menu-list">
+<?php if (!$grouped): ?><p class="notice">O cardápio está sendo preparado.</p><?php endif; ?>
+<?php foreach ($grouped as $category => $products): ?><section><h2><?= escape_html($category) ?></h2><div class="cards">
+<?php foreach ($products as $product): if (!$product['product_id']) continue; ?><article class="card">
+<?php if ($product['image_url'] && (str_starts_with($product['image_url'], 'https://') || str_starts_with($product['image_url'], '/uploads/'))): ?><img src="<?= escape_html($product['image_url']) ?>" alt="<?= escape_html($product['product_name']) ?>" loading="lazy"><?php endif; ?>
+<div class="card-body"><h3><?= escape_html($product['product_name']) ?></h3><p><?= escape_html($product['description']) ?></p><strong>R$ <?= number_format((float)$product['price'], 2, ',', '.') ?></strong></div></article><?php endforeach; ?></div></section><?php endforeach; ?>
+</main><footer><a href="../admin/login.php">Acesso administrativo</a></footer></body></html>

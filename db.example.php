@@ -1,20 +1,8 @@
 <?php
-// db.php - conexão centralizada com o banco de dados.
-// Credenciais vêm de variáveis de ambiente (não versionadas). Veja db.example.php / README.
-$host    = getenv('DB_HOST')    ?: 'localhost';
-$db      = getenv('DB_NAME')    ?: 'cardapio';
-$user    = getenv('DB_USER')    ?: 'root';
-$pass    = getenv('DB_PASS')    ?: '';
-$charset = getenv('DB_CHARSET') ?: 'utf8mb4';
-
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
-try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    throw new PDOException($e->getMessage(), (int)$e->getCode());
+// Exemplo de configuração documentado. O aplicativo usa db.php e exige estas
+// variáveis de ambiente; não coloque credenciais diretamente neste arquivo.
+foreach (['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS'] as $required) {
+    if (getenv($required) === false || getenv($required) === '') {
+        throw new RuntimeException("Variável de ambiente obrigatória ausente: $required");
+    }
 }

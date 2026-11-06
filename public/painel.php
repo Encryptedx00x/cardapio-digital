@@ -1,117 +1,40 @@
 <?php
-session_start();
-if (!isset($_SESSION['usuario_id'])) {
-    header('Location: index.php');
-    exit;
+declare(strict_types=1);
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/security.php';
+require_customer();
+$menuTypes = [
+    'agape_simples' => 'Ágape simples',
+    'agape_iniciacao' => 'Ágape de iniciação',
+    'jantar_ritualistico' => 'Jantar ritualístico',
+];
+$type = (string)($_GET['tipo'] ?? '');
+if (!isset($menuTypes[$type])) {
+    ?>
+    <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Escolha o menu</title><link rel="stylesheet" href="style.css"></head><body><main class="container"><div class="admin-nav"><a href="index.php">Cardápio</a><a href="logout.php">Sair</a></div><p class="eyebrow">Olá, <?= escape_html($_SESSION['user_name'] ?? '') ?></p><h1>Que tipo de menu deseja montar?</h1><div class="cards">
+    <?php foreach ($menuTypes as $key => $label): ?><a class="card card-body" href="painel.php?tipo=<?= escape_html($key) ?>"><h2><?= escape_html($label) ?></h2><span>Ver opções →</span></a><?php endforeach; ?>
+    </div></main></body></html>
+    <?php exit;
 }
-require_once '../db.php';
-// Buscar categorias
-$categorias = $pdo->query('SELECT * FROM categorias')->fetchAll();
-// Buscar itens agrupados por categoria
-$itens = $pdo->query('SELECT * FROM itens')->fetchAll();
-$itens_por_categoria = [];
-foreach ($itens as $item) {
-    $itens_por_categoria[$item['categoria_id']][] = $item;
+$stmt = $pdo->query(
+    'SELECT c.id category_id, c.name category_name, c.max_selection, p.id, p.name, p.description, p.ingredients, p.price
+     FROM categories c LEFT JOIN products p ON p.category_id=c.id AND p.available=1
+     ORDER BY c.sort_order, c.name, p.name'
+);
+$groups = [];
+foreach ($stmt->fetchAll() as $row) {
+    $groups[$row['category_id']]['name'] = $row['category_name'];
+    $groups[$row['category_id']]['max'] = (int)$row['max_selection'];
+    if ($row['id']) $groups[$row['category_id']]['products'][] = $row;
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Cardápio</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css"/>
-    <style>
-        .card-selecionado {
-            border: 2px solid #2563eb;
-            box-shadow: 0 0 10px #2563eb;
-            position: relative;
-        }
-        .check-icone {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #2563eb;
-            color: #fff;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="max-w-3xl mx-auto py-8">
-        <h2 class="text-2xl font-bold mb-6 text-center">Olá, <?php echo htmlspecialchars($_SESSION['usuario_nome']); ?>! Monte seu cardápio:</h2>
-        <form id="menuForm" method="POST" action="../api/enviar_menu.php">
-            <?php foreach ($categorias as $cat): ?>
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold mb-2"><?php echo htmlspecialchars($cat['nome']); ?></h3>
-                    <div class="swiper-container swiper-<?php echo $cat['id']; ?>">
-                        <div class="swiper-wrapper">
-                            <?php if (!empty($itens_por_categoria[$cat['id']])): foreach ($itens_por_categoria[$cat['id']] as $item): ?>
-                                <div class="swiper-slide">
-                                    <div class="item-card bg-white rounded-lg shadow p-4 m-2 cursor-pointer transition relative" data-item-id="<?php echo $item['id']; ?>" data-categoria-id="<?php echo $cat['id']; ?>">
-                                        <img src="../assets/<?php echo htmlspecialchars($item['imagem']); ?>" alt="<?php echo htmlspecialchars($item['nome']); ?>" class="w-32 h-32 object-cover rounded mb-2 mx-auto">
-                                        <div class="text-center font-medium"><?php echo htmlspecialchars($item['nome']); ?></div>
-                                        <input type="checkbox" name="itens[<?php echo $cat['id']; ?>][]" value="<?php echo $item['id']; ?>" class="hidden">
-                                    </div>
-                                </div>
-                            <?php endforeach; endif; ?>
-                        </div>
-                        <div class="swiper-button-next"></div>
-                        <div class="swiper-button-prev"></div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-            <div class="text-center">
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 text-lg">Enviar Menu</button>
-            </div>
-        </form>
-        <div class="text-center mt-6">
-            <a href="logout.php" class="text-gray-500 hover:underline">Sair</a>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
-    <script>
-        // Inicializar Swiper para cada categoria
-        <?php foreach ($categorias as $cat): ?>
-        new Swiper('.swiper-<?php echo $cat['id']; ?>', {
-            slidesPerView: 2.2,
-            spaceBetween: 16,
-            navigation: {
-                nextEl: '.swiper-<?php echo $cat['id']; ?> .swiper-button-next',
-                prevEl: '.swiper-<?php echo $cat['id']; ?> .swiper-button-prev',
-            },
-            breakpoints: {
-                640: { slidesPerView: 3.2 },
-                1024: { slidesPerView: 4.2 },
-            }
-        });
-        <?php endforeach; ?>
-        // Seleção visual dos cards
-        document.querySelectorAll('.item-card').forEach(card => {
-            card.addEventListener('click', function() {
-                const checkbox = this.querySelector('input[type=checkbox]');
-                checkbox.checked = !checkbox.checked;
-                this.classList.toggle('card-selecionado', checkbox.checked);
-                if (checkbox.checked) {
-                    if (!this.querySelector('.check-icone')) {
-                        const check = document.createElement('span');
-                        check.className = 'check-icone';
-                        check.innerHTML = '✔';
-                        this.appendChild(check);
-                    }
-                } else {
-                    const check = this.querySelector('.check-icone');
-                    if (check) check.remove();
-                }
-            });
-        });
-    </script>
-</body>
-</html> 
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monte seu menu</title><link rel="stylesheet" href="style.css"></head><body><main class="container"><div class="admin-nav"><a href="painel.php">← Trocar tipo de menu</a><a href="index.php">Cardápio público</a><a href="logout.php">Sair</a></div><h1><?= escape_html($menuTypes[$type]) ?></h1><p class="muted">Selecione os itens desejados. Toque no nome para conferir os ingredientes.</p>
+<form method="post" action="../api/enviar_menu.php" class="stack"><input type="hidden" name="csrf_token" value="<?= escape_html(csrf_token()) ?>"><input type="hidden" name="tipo" value="<?= escape_html($type) ?>">
+<?php foreach ($groups as $categoryId => $group): ?><fieldset data-max="<?= $group['max'] ?>"><legend><strong><?= escape_html($group['name']) ?></strong><?php if ($group['max']): ?> <span class="muted">(máximo <?= $group['max'] ?>)</span><?php endif; ?></legend>
+<?php foreach ($group['products'] ?? [] as $product): ?><label class="product-choice"><input type="checkbox" name="itens[]" value="<?= (int)$product['id'] ?>" data-category="<?= (int)$categoryId ?>"><span><button type="button" class="ingredient-button" data-name="<?= escape_html($product['name']) ?>" data-ingredients="<?= escape_html($product['ingredients']) ?>" style="background:none;color:#315c41!important;padding:0;text-align:left"><?= escape_html($product['name']) ?></button><small class="muted"> <?= escape_html($product['description']) ?></small></span><strong>R$ <?= number_format((float)$product['price'], 2, ',', '.') ?></strong></label><?php endforeach; ?></fieldset><?php endforeach; ?>
+<label>Observações<textarea name="observacoes" rows="3" maxlength="2000"></textarea></label><button type="submit" onclick="return confirm('Enviar este menu para o administrador?')">Enviar menu</button></form>
+</main><dialog id="ingredients"><form method="dialog"><h2 id="ingredient-name"></h2><p id="ingredient-list"></p><button>Fechar</button></form></dialog>
+<script>
+document.querySelectorAll('.ingredient-button').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();document.getElementById('ingredient-name').textContent=button.dataset.name;document.getElementById('ingredient-list').textContent=button.dataset.ingredients||'Ingredientes não informados';document.getElementById('ingredients').showModal()}));
+document.querySelectorAll('input[type=checkbox][data-category]').forEach(box=>box.addEventListener('change',()=>{const group=box.closest('fieldset'),max=Number(group.dataset.max),checked=group.querySelectorAll('input:checked').length;if(max&&checked>max){box.checked=false;alert(`Selecione no máximo ${max} item(ns) nesta categoria.`)}}));
+</script></body></html>
