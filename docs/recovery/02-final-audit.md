@@ -37,3 +37,5 @@ Também: porta configurável via `DB_PORT`, scripts CLI rejeitam HTTP e token CS
 ## Checkpoint de preparação para revisão
 
 O README explicita que a migração de bancos legados não foi validada e que não há migração automática. A homologação permanece restrita ao MariaDB isolado já documentado.
+
+O CI verifica a sintaxe PHP e executa o smoke test de segurança sem banco ou credenciais. A integração MariaDB continua sendo a homologação local documentada acima, não um teste do CI.
